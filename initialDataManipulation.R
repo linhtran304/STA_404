@@ -1,13 +1,20 @@
 install.packages("https://github.com/ropensci/gutenbergr")
 library(gutenbergr)
+library(WikipediR)
 
+### Bar Chart of subjects within classics bookshelf
+# Used gutenberg package to get book info
 books <- gutenberg_metadata
 books2 <- gutenberg_subjects
+authors <- gutenberg_authors
 
+# Joined book info together and filtered by classics only
 books <- books %>%
   filter(grepl(gutenberg_bookshelf, pattern="Harvard Classics")) %>%
-  left_join(books2)
+  left_join(books2) %>%
+  left_join(authors)
 
+# Assign subject categories to the classics books
 fiction <- books %>%
   filter(grepl(subject, pattern="Fiction", ignore.case=TRUE) |
            grepl(subject, pattern="stories", ignore.case=TRUE)) %>%
@@ -103,12 +110,13 @@ history <- books %>%
             subject_category) %>%
   unique()
 
-
+# Bind all subjects together
 classicsList <- fiction %>% rbind(nonfiction) %>%
   rbind(drama) %>% rbind(essays) %>%
   rbind(fairy_tales) %>% rbind(history) %>%
   rbind(poetry) %>% rbind(religious)
 
+# Plots classics list subjects as bar chart 
 ggplot(classicsList) + 
   geom_bar(aes(x=subject_category)) + 
   labs(title="Harvard Classic Novels Classified by Genre\n",
@@ -117,9 +125,18 @@ ggplot(classicsList) +
   scale_y_continuous(expand = c(0,0))
 
 
+### Scatterplot of years vs classics books (each book is a point on scatterplot)
+# Web scrape Wikipedia to get years of publication/written 
+# Maybe even have sized dots based on how popular/how many downloads?
 
+# Obtain author wiki link for classic novels
+author_pages <- books %>% left_join(authors) %>%
+  select(gutenberg_id, wikipedia) %>%
+  unique() %>% drop_na()
 
-
+### Box and Whisker Plot to show distribution of downloads for books within a genre
+# Takes the bar chart data and joins with data about download numbers to show 
+# distributionof how popular genres are 
 
 
 
