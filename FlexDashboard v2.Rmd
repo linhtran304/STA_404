@@ -1,0 +1,99 @@
+---
+title: "Project Gutenberg Exploration! Explore by: "
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    theme: 
+      version: 4
+      bootswatch: lumen
+    orientation: columns
+    source_code: embed 
+---
+
+```{r global, include=FALSE}
+pacman::p_load(flexdashboard, tidyverse, ggplot2, plotly, hrbrthemes, bslib, ggpubr)
+library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+
+hrbrthemes::import_plex_sans()
+load("~/data/all_data.RData")
+
+```
+
+
+
+Author
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput('authorSearch', strong('Search for an author here'), choices = all_data$author)
+
+radioButtons('analysis', 'Choose an analysis:', c("Sentiment", "Subject"))
+```
+
+Outputs {.no-padding}
+-----------------------------------------------------------------------
+
+```{r}
+selected_data <- reactive({
+      req(input$authorSearch)
+      req(input$analysis)
+      validate(need(!is.na(input$authorSearch), "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), "Please select an analysis method to begin exploration."))
+      all_data %>%
+        filter(author == input$authorSearch) %>%
+        select(author, title, input$analysis)
+      
+    })
+
+renderPlotly({
+      p = ggplot(selected_data(), aes_string(x=input$analysis)) + 
+          geom_bar(color = 'cadetblue3') + 
+          labs(title="Explore texts written by subject for selected author")
+          
+      plotly::ggplotly(p, height = 530)
+    })
+
+
+
+```
+
+Bookshelf
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput('bookshelf', strong('Select a bookshelf to explore'), na.omit(all_data$gutenberg_bookshelf), all_data$gutenberg_bookshelf[11])
+
+sliderInput('top','Number of books displayed',
+            min=5,max=30,step=5,value=5)
+```
+
+Outputs {.no-padding}
+-----------------------------------------------------------------------
+```{r}
+selected_data <- reactive({
+  all_data %>% filter(gutenberg_bookshelf == input$bookshelf) %>% 
+    arrange(desc(downloads_30_days)) %>% 
+  head(input$top)
+})
+
+renderPlotly({
+      p3 = ggplot(selected_data(),  aes(x = reorder(title,downloads_30_days), y = downloads_30_days)) +
+  geom_bar(stat = "identity", fill = "darkslategray") +
+  xlab("Book Title") +
+  ylab("Number of Downloads") +
+  labs(title="Comparing Popularity of Books within Selected Bookshelf",
+          subtitle="Popularity Determined by Number of Downloads from Project Guetenberg in the Past 30 Days." )+
+  coord_flip()+
+  theme_minimal()
+      
+  plotly::ggplotly(p3, height = 530)
+    }) 
+```
