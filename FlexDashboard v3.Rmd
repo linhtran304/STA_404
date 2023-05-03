@@ -1,0 +1,137 @@
+---
+title: "Project Gutenberg Exploration! Explore by: "
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    theme: 
+      version: 4
+      bootswatch: lumen
+    orientation: columns
+    source_code: embed 
+---
+
+```{r global, include=FALSE}
+pacman::p_load(flexdashboard, tidyverse, ggplot2, plotly, hrbrthemes, bslib, ggpubr)
+library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(gutenbergr)
+
+hrbrthemes::import_plex_sans()
+load("~/Desktop/all_data.RData")
+load("~/Desktop/all_data_subjects.RData")
+
+
+```
+
+
+
+Author
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput('authorSearch', strong('Search for an author here'), 
+            choices = unique(na.omit(all_data$author)),
+            selected = all_data$author[11])
+
+radioButtons('analysis', 'Choose an analysis:', 
+             c("Subject", "Sentiment"))
+```
+
+Outputs {.no-padding}
+-----------------------------------------------------------------------
+
+```{r}
+selected_data <- reactive({
+      req(input$authorSearch)
+      req(input$analysis)
+      validate(need(!is.na(input$authorSearch), 
+                    "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), 
+                    "Please select an analysis method to begin exploration."))
+      
+      if(input$analysis == "Subject"){
+        subjectList %>%
+          filter(author == input$authorSearch) %>%
+          select(author, title, subject_category) %>%
+          unique() %>% group_by(subject_category) %>% 
+          mutate(num = n())
+      } else{
+        all_data %>%
+          filter(author == input$authorSearch) %>%
+          select(author, title, input$analysis)
+      }
+    })
+
+renderPlotly({
+  if(input$analysis == "Sentiment"){
+    p = ggplot(selected_data(), aes_string(y=num, x=all_data$sentiment)) + 
+          geom_col(color = 'cadetblue3') + 
+          labs(title="Explore texts written by subject for selected author")
+          
+      plotly::ggplotly(p, height = 530)
+  } else {
+     p = ggplot(selected_data(),
+                aes_string(x=subjectList$subject_category)) +
+       geom_bar(fill = 'darkslategray') +
+       labs(title="Publications of Selected Author Classified by Subject\n",
+           y="", x="Subject Category",
+           caption="Data collected from the Gutenberg Project") +
+       theme_classic() + 
+       scale_y_continuous(expand = c(0,0))
+          
+      plotly::ggplotly(p, height = 530)
+  }
+})
+
+```
+
+Bookshelf
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+all_data <- all_data %>% 
+  group_by(gutenberg_bookshelf) %>% 
+  mutate(num = n())
+
+selectInput('bookshelf', strong('Select a bookshelf to explore'), choices=unique(na.omit(all_data$gutenberg_bookshelf)), selected=all_data$gutenberg_bookshelf[11])
+
+sliderInput('top','Number of books displayed',
+            min=0,max=30,step=5,value=5)
+
+```
+
+Outputs {.no-padding}
+-----------------------------------------------------------------------
+```{r}
+selected_data <- reactive({
+  all_data %>% 
+    filter(gutenberg_bookshelf == input$bookshelf) %>% 
+    arrange(desc(downloads_30_days)) %>% 
+    head(input$top) %>%
+    mutate(shortTitle = ifelse(nchar(title) > 35, 
+                               paste(substr(title, 0, 30), '...'), title ))
+})
+
+
+renderPlotly({
+      p3 = ggplot(selected_data(),  
+                  aes(x = reorder(shortTitle,downloads_30_days), 
+                      y = downloads_30_days)) +
+        geom_bar(stat = "identity", fill = "darkslategray") +
+        labs(title="Comparing Popularity of Books within Selected Bookshelf",
+             subtitle="Popularity Determined by Number of Downloads from Project, Guetenberg in the Past 30 Days.",
+             x="Book Title" ,
+             y= "Number of Downloads")+
+        coord_flip()+
+        theme_minimal() 
+      
+      plotly::ggplotly(p3, height = 530)
+    }) 
+```
