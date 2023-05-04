@@ -46,7 +46,7 @@ Outputs {.no-padding}
 -----------------------------------------------------------------------
 
 ```{r}
-selected_data <- reactive({
+selected_data1 <- reactive({
       req(input$authorSearch)
       req(input$analysis)
       validate(need(!is.na(input$authorSearch), 
@@ -55,36 +55,41 @@ selected_data <- reactive({
                     "Please select an analysis method to begin exploration."))
       
       if(input$analysis == "Subject"){
-        subjectList %>%
+        out_subject <- subjectList %>%
           filter(author == input$authorSearch) %>%
+          #filter(author == "Carroll, Lewis") %>%
+          mutate(subject_category=str_trim(subject_category)) %>%
           select(author, title, subject_category) %>%
           unique() %>% group_by(subject_category) %>% 
-          mutate(num = n())
+          summarize(num = n(),
+                 author=first(author))
       } else{
         all_data %>%
           filter(author == input$authorSearch) %>%
           select(author, title, input$analysis)
       }
+      out_subject
     })
 
-renderPlotly({
+renderPlot({
   if(input$analysis == "Sentiment"){
-    p = ggplot(selected_data(), aes_string(y=num, x=all_data$sentiment)) + 
+    p = ggplot(selected_data(), aes_string( x=all_data$sentiment)) + 
           geom_col(color = 'cadetblue3') + 
           labs(title="Explore texts written by subject for selected author")
           
       plotly::ggplotly(p, height = 530)
   } else {
-     p = ggplot(selected_data(),
-                aes_string(x=subjectList$subject_category)) +
-       geom_bar(fill = 'darkslategray') +
-       labs(title="Publications of Selected Author Classified by Subject\n",
+     p = ggplot(data=selected_data1(),
+                aes(x=subject_category, y=num) ) +
+       geom_col(fill = 'darkslategray') +
+       labs(title=paste("Publications of", selected_data1()$author[1],  "Classified by Subject\n"),
+           subtitle=paste("Total number of publications:", sum(selected_data1()$num)), 
            y="", x="Subject Category",
            caption="Data collected from the Gutenberg Project") +
        theme_classic() + 
        scale_y_continuous(expand = c(0,0))
-          
-      plotly::ggplotly(p, height = 530)
+
+     p
   }
 })
 
