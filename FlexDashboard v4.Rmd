@@ -1,0 +1,181 @@
+---
+title: "Project Gutenberg Exploration! Explore by: "
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    theme: 
+      version: 4
+      bootswatch: lumen
+    orientation: columns
+    source_code: embed 
+---
+
+```{r global, include=FALSE}
+pacman::p_load(flexdashboard, tidyverse, ggplot2, plotly, hrbrthemes, bslib, ggpubr)
+library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(gutenbergr)
+library(patchwork)
+
+hrbrthemes::import_plex_sans()
+load("~/Desktop/all_data.RData")
+load("~/Desktop/all_data_subjects.RData")
+
+all_data <- all_data %>%
+  mutate(author = sub("(\\w+),\\s(\\w+)","\\2 \\1", all_data$author))
+subjectList <- subjectList %>%
+  mutate(author = sub("(\\w+),\\s(\\w+)","\\2 \\1", subjectList$author))
+
+```
+
+Author
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+
+selectInput('authorSearch', strong('Search for an author here'), 
+            choices = unique(na.omit(all_data$author)),
+            selected = all_data$author[72])
+
+radioButtons('analysis', 'Choose an analysis:', 
+             c("Subject", "Sentiment"))
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+### Publications by Subject 
+```{r}
+selected_data1 <- reactive({
+      req(input$authorSearch)
+      req(input$analysis)
+      validate(need(!is.na(input$authorSearch), 
+                    "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), 
+                    "Please select an analysis method to begin exploration."))
+      
+      if(input$analysis == "Subject"){
+        out_subject <- subjectList %>%
+          filter(author == input$authorSearch) %>%
+          #filter(author == "Carroll, Lewis") %>%
+          mutate(subject_category=str_trim(subject_category)) %>%
+          select(author, title, subject_category) %>%
+          unique() %>% group_by(subject_category) %>% 
+          summarize(num = n(),
+                 author=first(author))
+      } else{
+        all_data %>%
+          filter(author == input$authorSearch) %>%
+          select(author, title, input$analysis)
+      }
+      out_subject
+    })
+
+renderPlot({
+  if(input$analysis == "Sentiment"){
+    p = ggplot(selected_data(), aes_string( x=all_data$sentiment)) + 
+          geom_col(color = 'cadetblue3') + 
+          labs(title="Explore texts written by subject for selected author")
+          
+      plotly::ggplotly(p, height = 530)
+  } else {
+     p = ggplot(data=selected_data1(),
+                aes(x=subject_category, y=num) ) +
+       geom_col(fill = 'darkslategray') +
+       labs(title=paste("Publications of", 
+                        selected_data1()$author[1],  "Classified by Subject"),
+           subtitle=paste("Total number of publications:", 
+                          sum(selected_data1()$num), "\n"), 
+           y="", x="Subject Category",
+           caption="Data collected from the Gutenberg Project") +
+       theme_classic() + 
+       theme(text = element_text(size=18)) + 
+       scale_y_continuous(expand = c(0,0))
+     
+     p
+  }
+})
+```
+
+### List of all Publications
+```{r}
+selected_data2 <- reactive({
+      req(input$authorSearch)
+      req(input$analysis)
+      validate(need(!is.na(input$authorSearch), 
+                    "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), 
+                    "Please select an analysis method to begin exploration."))
+      
+      if(input$analysis == "Subject"){
+        out_subject <- subjectList %>%
+          filter(author == input$authorSearch) %>%
+          mutate(subject_category=str_trim(subject_category)) %>%
+          select("Title" = title,  "Subject" = subject_category) %>%
+          unique() 
+      } else{
+        all_data %>%
+          filter(author == input$authorSearch) %>%
+          select(author, title, input$analysis)
+      }
+      out_subject
+    })
+
+renderTable({
+  if(input$analysis == "Subject"){
+    selected_data2()
+  }
+})
+```
+
+Bookshelf
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+all_data_mod <- all_data %>%
+  group_by(bookshelf_mod) %>% 
+  mutate(num = n())
+
+selectInput('bookshelf', strong('Select a bookshelf to explore'), choices=unique(na.omit(all_data_mod$bookshelf_mod)), 
+            selected=all_data_mod$bookshelf_mod[99])
+
+sliderInput('top','Number of books displayed',
+            min=0,max=20,step=2,value=6)
+
+```
+
+Outputs {.no-padding}
+-----------------------------------------------------------------------
+```{r}
+selected_data <- reactive({
+  all_data_mod <- all_data %>% 
+    filter(bookshelf_mod == input$bookshelf) %>% 
+    arrange(desc(downloads_30_days)) %>% 
+    head(input$top) %>%
+    mutate(shortTitle = ifelse(nchar(title) > 35, 
+                               paste(substr(title, 0, 30), '...'), title ))
+})
+
+
+renderPlotly({
+      p3 = ggplot(selected_data(),  
+                  aes(x = reorder(shortTitle,downloads_30_days), 
+                      y = downloads_30_days)) +
+        geom_bar(stat = "identity", fill = "darkslategray") +
+        coord_flip()+
+        labs(title="Comparing Popularity of Books within Selected Bookshelf",
+             subtitle="Popularity Determined by Number of Downloads from Project, Guetenberg in the Past 30 Days.",
+             x="Book Title\n" ,
+             y= "Number of Downloads\n")+
+        theme_minimal() 
+      
+      p3
+    }) 
+```
