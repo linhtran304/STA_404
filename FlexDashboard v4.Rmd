@@ -44,7 +44,7 @@ selectInput('authorSearch', strong('Search for an author here'),
             selected = all_data$author[72])
 
 radioButtons('analysis', 'Choose an analysis:', 
-             c("Subject", "Sentiment"))
+             c("Subject", "Sentiment", "Diction"))
 ```
 
 Column {data-width=500}
@@ -112,24 +112,15 @@ selected_data2 <- reactive({
       validate(need(!is.na(input$analysis), 
                     "Please select an analysis method to begin exploration."))
       
-      if(input$analysis == "Subject"){
-        out_subject <- subjectList %>%
-          filter(author == input$authorSearch) %>%
-          mutate(subject_category=str_trim(subject_category)) %>%
-          select("Title" = title,  "Subject" = subject_category) %>%
-          unique() 
-      } else{
-        all_data %>%
-          filter(author == input$authorSearch) %>%
-          select(author, title, input$analysis)
-      }
-      out_subject
+      out_subject <- subjectList %>%
+        filter(author == input$authorSearch) %>%
+        mutate(subject_category=str_trim(subject_category)) %>%
+        select("Title" = title,  "Subject" = subject_category) %>%
+        unique() 
     })
 
 renderTable({
-  if(input$analysis == "Subject"){
     selected_data2()
-  }
 })
 ```
 
