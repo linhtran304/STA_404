@@ -16,6 +16,10 @@ pacman::p_load(flexdashboard, tidyverse, plotly, hrbrthemes, bslib, ggpubr)
 hrbrthemes::import_plex_sans()
 
 load(url("https://github.com/linhtran304/STA_404/raw/main/all_data.RData"))
+
+all_data <- all_data %>%
+  mutate(author = sub("(\\w+),\\s(\\w+)","\\2 \\1", all_data$author),
+         shortGenre = ifelse(nchar(genre)>8,paste(substr(genre, 0, 8), '-'), genre))
 ```
 
 
@@ -26,33 +30,111 @@ Inputs {.sidebar}
 -----------------------------------------------------------------------
 
 ```{r}
-selectInput('authorSearch', strong('Search for an author here'), choices = all_data$author)
+selectInput('authorSearch', strong('Search for an author here'), 
+            choices = unique(na.omit(all_data$author)),
+            selected = all_data$author[15])
 
-radioButtons('analysis', 'Choose an analysis:', c("Sentiment", "Subject"))
+radioButtons('analysis', 'Choose an analysis:', 
+             c("Subject", "Sentiment", "Diction"))
 ```
 
-Outputs {.no-padding}
+Column {data-width=1000}
 -----------------------------------------------------------------------
-
+### Publications by Subject 
 ```{r}
-selected_data <- reactive({
+selected_data1 <- reactive({
       req(input$authorSearch)
       req(input$analysis)
-      validate(need(!is.na(input$authorSearch), "Please provide an author's name to begin exploration."))
-      validate(need(!is.na(input$analysis), "Please select an analysis method to begin exploration."))
-      all_data %>%
-        filter(author == input$authorSearch) %>%
-        select(author, title, input$analysis)
+      validate(need(!is.na(input$authorSearch), 
+                    "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), 
+                    "Please select an analysis method to begin exploration."))
       
+      if(input$analysis == "Subject"){
+        out_subject <- all_data %>%
+          filter(author == input$authorSearch) %>%
+          mutate(shortGenre = ifelse(nchar(genre) > 8, 
+                               paste(substr(genre, 0, 8), '-'), genre)) %>%
+          select(author, title, genre, shortGenre) %>%
+          group_by(author, title) %>% unique() %>%
+          summarize(num = n(), author=first(author), shortGenre)
+        
+        subjectCountTest <- n_distinct(out_subject$shortGenre)
+        
+        if(subjectCountTest > 5){
+          subjectGenres<- out_subject %>% 
+              ungroup() %>% 
+              group_by(shortGenre) %>%
+              mutate(num = n()) %>%
+              arrange(num) %>%
+              distinct(shortGenre, .keep_all=FALSE) 
+            
+            subjectGenres <- tail(subjectGenres, 5)
+            
+            out_subject <- out_subject %>%
+              filter(shortGenre == subjectGenres$shortGenre[1] |
+                       shortGenre == subjectGenres$shortGenre[2] |
+                       shortGenre == subjectGenres$shortGenre[3] |
+                       shortGenre == subjectGenres$shortGenre[4] |
+                       shortGenre == subjectGenres$shortGenre[5] )
+          
+          } else{
+            out_subject
+          }
+
+      } else{
+        all_data %>%
+          filter(author == input$authorSearch) %>%
+          select(author, title, input$analysis)
+      }
+      out_subject
     })
 
-renderPlotly({
-      p = ggplot(selected_data(), aes_string(x=input$analysis)) + 
-          geom_bar(color = 'cadetblue3') + 
-          labs(title="Explore texts written by subject for selected author")
+renderPlot({
+  if(input$analysis == "Sentiment"){
+    p = ggplot(selected_data(), aes_string( x=all_data$sentiment)) + 
+          geom_col(color = 'cadetblue3') + 
+          labs(title="Explore texts written by subject for selected author") 
           
       plotly::ggplotly(p, height = 530)
+  } else {
+     p = ggplot(data=selected_data1(),
+                aes(x=shortGenre, y=num) ) +
+       geom_col(fill = 'darkslategray') +
+       labs(title=paste("Publications of",
+                        selected_data1()$author[1],"Classified by Most Popular Genres"),
+           subtitle=paste("Total number of publications:",
+                          sum(selected_data1()$num),"\n"), 
+           y="", x="Subject Category",
+           caption="Data collected from the Gutenberg Project") +
+       theme_classic() + 
+       theme(text = element_text(size=18)) +
+       scale_y_continuous(expand = c(0,0))
+     
+     p
+  }
+})
+```
+
+### List of all Publications
+```{r}
+selected_data2 <- reactive({
+      req(input$authorSearch)
+      req(input$analysis)
+      validate(need(!is.na(input$authorSearch), 
+                    "Please provide an author's name to begin exploration."))
+      validate(need(!is.na(input$analysis), 
+                    "Please select an analysis method to begin exploration."))
+      
+      out_subject <- all_data %>%
+        filter(author == input$authorSearch) %>%
+        select("Title" = title,  "Genre" = genre) %>%
+        unique() 
     })
+
+renderTable({
+    selected_data2()
+})
 ```
 
 Bookshelf
@@ -61,22 +143,42 @@ Bookshelf
 Inputs {.sidebar}
 -----------------------------------------------------------------------
 ```{r}
-selectInput('bookshelf', strong('Select a bookshelf to explore'), all_data$gutenberg_bookshelf, all_data$gutenberg_bookshelf[11])
+all_data_mod <- all_data %>% 
+  mutate(bookshelf_mod = strsplit(gutenberg_bookshelf, "/")) %>%
+  unnest(bookshelf_mod) %>% group_by(bookshelf_mod) %>% 
+  mutate(num = n())
+
+selectInput('bookshelf', strong('Select a bookshelf to explore'), choices=unique(na.omit(all_data_mod$bookshelf_mod)), 
+            selected=all_data_mod$bookshelf_mod[99])
+
+sliderInput('top','Number of books displayed',
+            min=0,max=20,step=2,value=6)
 ```
 
 Outputs {.no-padding}
 -----------------------------------------------------------------------
 ```{r}
 selected_data <- reactive({
-      all_data %>% filter(gutenberg_bookshelf == input$bookshelf) 
-    })
+  all_data_mod <- all_data %>% 
+    filter(bookshelf_mod == input$bookshelf) %>% 
+    arrange(desc(downloads_30_days)) %>% 
+    head(input$top) %>%
+    mutate(shortTitle = ifelse(nchar(title) > 35, 
+                               paste(substr(title, 0, 30), '...'), title ))
+})
 
 renderPlotly({
-      p3 = ggplot(all_data, aes_string(x='subject', y='downloads_30_days')) +
-          geom_col(color = 'darkslategray') +
-          labs(title="Comparing Popularity of Subjects within Selected Bookshelf",
-          subtitle="Popularity Determined by Number of Downloads from Project Guetenberg in the Past 30 Days." )
-      plotly::ggplotly(p3, height = 530)
-    })
-  
+      p3 = ggplot(selected_data(),  
+                  aes(x = reorder(shortTitle,downloads_30_days), 
+                      y = downloads_30_days)) +
+        geom_bar(stat = "identity", fill = "darkslategray") +
+        coord_flip()+
+        labs(title="Comparing Popularity of Books within Selected Bookshelf",
+             subtitle="Popularity Determined by Number of Downloads from Project, Guetenberg in the Past 30 Days.",
+             x="Book Title\n" ,
+             y= "Number of Downloads\n")+
+        theme_minimal() 
+      
+      p3
+    }) 
 ```
