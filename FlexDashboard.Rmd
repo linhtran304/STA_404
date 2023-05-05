@@ -11,11 +11,11 @@ output:
 ---
 
 ```{r global, include=FALSE}
-pacman::p_load(flexdashboard, tidyverse, ggplot2, plotly, hrbrthemes, bslib, ggpubr)
+pacman::p_load(flexdashboard, tidyverse, plotly, hrbrthemes, bslib, ggpubr)
 
 hrbrthemes::import_plex_sans()
 
-load("~/Desktop/all_data.RData")
+load(url("https://github.com/linhtran304/STA_404/raw/main/all_data.RData"))
 ```
 
 
