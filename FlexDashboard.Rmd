@@ -160,6 +160,8 @@ Outputs {.no-padding}
 ```{r}
 selected_data <- reactive({
   all_data_mod <- all_data %>% 
+    mutate(bookshelf_mod = strsplit(gutenberg_bookshelf, "/")) %>%
+    unnest(bookshelf_mod) %>%
     filter(bookshelf_mod == input$bookshelf) %>% 
     arrange(desc(downloads_30_days)) %>% 
     head(input$top) %>%
