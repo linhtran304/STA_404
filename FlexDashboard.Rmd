@@ -35,7 +35,7 @@ selectInput('authorSearch', strong('Search for an author here'),
             selected = all_data$author[15])
 
 radioButtons('analysis', 'Choose an analysis:', 
-             c("Subject", "Sentiment", "Diction"))
+             c("Subject", "Sentiment"))
 ```
 
 Column {data-width=1000}
@@ -146,7 +146,10 @@ Inputs {.sidebar}
 all_data_mod <- all_data %>% 
   mutate(bookshelf_mod = strsplit(gutenberg_bookshelf, "/")) %>%
   unnest(bookshelf_mod) %>% group_by(bookshelf_mod) %>% 
-  mutate(num = n())
+  mutate(num = n(),
+         Title = ifelse(nchar(title) > 35,
+                        paste(substr(title, 0, 30), '...'), title ),
+         Downloads = downloads_30_days)
 
 selectInput('bookshelf', strong('Select a bookshelf to explore'), choices=unique(na.omit(all_data_mod$bookshelf_mod)), 
             selected=all_data_mod$bookshelf_mod[99])
@@ -159,20 +162,20 @@ Outputs {.no-padding}
 -----------------------------------------------------------------------
 ```{r}
 selected_data <- reactive({
-  all_data_mod <- all_data %>% 
-    mutate(bookshelf_mod = strsplit(gutenberg_bookshelf, "/")) %>%
-    unnest(bookshelf_mod) %>%
+  all_data_mod <- all_data_mod %>% 
     filter(bookshelf_mod == input$bookshelf) %>% 
     arrange(desc(downloads_30_days)) %>% 
-    head(input$top) %>%
-    mutate(shortTitle = ifelse(nchar(title) > 35, 
-                               paste(substr(title, 0, 30), '...'), title ))
+    head(input$top) %>% 
+    arrange(desc(Downloads))
 })
 
 renderPlotly({
       p3 = ggplot(selected_data(),  
-                  aes(x = reorder(shortTitle,downloads_30_days), 
-                      y = downloads_30_days)) +
+                  aes(y = Downloads,
+                      x = reorder(Title,Downloads), 
+                      text = paste("Title:", title, 
+                               "\nAuthor:",author,
+                               "\nDownloads:", Downloads))) +
         geom_bar(stat = "identity", fill = "darkslategray") +
         coord_flip()+
         labs(title="Comparing Popularity of Books within Selected Bookshelf",
@@ -181,6 +184,7 @@ renderPlotly({
              y= "Number of Downloads\n")+
         theme_minimal() 
       
-      p3
+      
+      ggplotly(p3, tooltip = "text")
     }) 
 ```
