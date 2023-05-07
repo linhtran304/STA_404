@@ -1,5 +1,6 @@
 ############# Swap here
-load('group_data/subset_classics.RData')
+load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics/subset_classics.RData'))
+if(require(pacman)==F) install.packages('pacman')
 pacman::p_load(tidyverse)
 data = subset_classics |> 
   mutate(title = ifelse(nchar(title) > 70, 
