@@ -17,7 +17,7 @@ theme_set(theme_minimal())
 
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
-load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics/processed_classics.RData'))
+load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics%20copy/processed_classics.RData'))
 
 bookshelf_authors <- bookshelf_authors %>%
   mutate(author = ifelse(grepl(",", author), 
