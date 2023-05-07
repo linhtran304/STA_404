@@ -12,7 +12,7 @@ output:
 
 ```{r global, include=FALSE}
 if(require(pacman)==F) install.packages('pacman')
-pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, RColorBrewer)
+pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib)
 theme_set(theme_minimal())
 
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
@@ -216,18 +216,19 @@ Row {.tabset .tabset-fade}
 selected_author <- reactive({
   author_summary_by_genres |> 
     filter(author == input$authorSearch) |> 
-    slice_max(total_pub, n=5)
+    arrange(desc(total_pub)) |> 
+    head(5)
 })
 
 renderPlot({
   
-  genres_plot = ggplot(selected_author(), aes(total_pub, genre, text=paste0("Total Publications: ", total_pub, "\nGenre: ",genre)), color='grey50') + 
+  genres_plot = ggplot(selected_author(), aes(total_pub, reorder(genre,total_pub))) + 
       geom_col(fill='#6cc3d5') + 
       scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
-      labs(x = "\nNumber of Publications", 
-           y = "",
+      labs(x = "\nNumber of Publications",
            title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
-      theme(text = element_text(size=14)) 
+      theme(text = element_text(size=14),
+            axis.title.y = element_blank()) 
     
           
   genres_plot
