@@ -17,13 +17,7 @@ theme_set(theme_minimal())
 
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
-load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics%20copy/processed_classics.RData'))
-
-bookshelf_authors <- bookshelf_authors %>%
-  mutate(author = ifelse(grepl(",", author), 
-                         paste(str_split(author, ",", simplify = TRUE)[,2],
-                               str_split(author, ",", simplify = TRUE)[,1],
-                               sep = " "), author))
+load('/Users/alliefiliatraut/Documents/GitHub/STA_404/processed_allData.RData')
 
 ```
 
@@ -155,24 +149,6 @@ Inputs {.sidebar}
 -----------------------------------------------------------------------
 
 ```{r}
-
-data <- data %>%
-  mutate(author = ifelse(grepl(",", author), 
-                         paste(str_split(author, ",", simplify = TRUE)[,2],
-                               str_split(author, ",", simplify = TRUE)[,1],
-                               sep = " "), author))
-
-author_summary <- author_summary %>%
-  mutate(author = ifelse(grepl(",", author), 
-                         paste(str_split(author, ",", simplify = TRUE)[,2],
-                               str_split(author, ",", simplify = TRUE)[,1],
-                               sep = " "), author))
-
-author_summary_by_genres <- author_summary_by_genres %>%
-  mutate(author = ifelse(grepl(",", author), 
-                         paste(str_split(author, ",", simplify = TRUE)[,2],
-                               str_split(author, ",", simplify = TRUE)[,1],
-                               sep = " "), author))
 
 selectInput('authorSearch', strong('Search for an author here'), 
             choices = unique(na.omit(data$author)),

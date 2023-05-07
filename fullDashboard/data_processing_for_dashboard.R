@@ -1,9 +1,9 @@
 ############# Swap here
-load(url('https://github.com/linhtran304/STA_404/raw/main/all_data_w_sentiment.RData'))
+load(url('https://github.com/linhtran304/STA_404/raw/main/fullDashboard/all_data_w_sentiment.RData'))
 
 if(require(pacman)==F) install.packages('pacman')
 pacman::p_load(tidyverse)
-data = subset_classics |> 
+data = all_data_w_sentiment |> 
   mutate(title = ifelse(nchar(title) > 70, 
                              paste(substr(title, 0, 70), '...'), title),
          genre = ifelse(nchar(title) > 70, 
@@ -48,7 +48,6 @@ author_summary_by_genres = data |>
   summarize(total_pub = n())
 
 ###################################
-setwd('/Users/alliefiliatraut/Documents/GitHub/STA_404/')
 save(data, author_summary, author_summary_by_genres, 
      bookshelf_genres, bookshelf_authors,
      genres_authors,
