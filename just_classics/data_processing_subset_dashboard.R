@@ -1,7 +1,9 @@
 ############# Swap here
 load('group_data/subset_classics.RData')
 pacman::p_load(tidyverse)
-data = subset_classics
+data = subset_classics |> 
+  mutate(title = ifelse(nchar(title) > 70, 
+                             paste(substr(title, 0, 70), '...'), title ))
 #############
 
 
