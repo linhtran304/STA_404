@@ -1,12 +1,20 @@
 ############# Swap here
-load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics/subset_classics.RData'))
+load(url('https://github.com/linhtran304/STA_404/raw/main/all_data_w_sentiment.RData'))
+
 if(require(pacman)==F) install.packages('pacman')
 pacman::p_load(tidyverse)
-data = subset_classics |> 
+data = all_data_w_sentiment |> 
   mutate(title = ifelse(nchar(title) > 70, 
                              paste(substr(title, 0, 70), '...'), title),
          genre = ifelse(nchar(title) > 70, 
-                        paste(substr(title, 0, 70), '...'), genre))
+                        paste(substr(title, 0, 70), '...'), genre),
+         author = ifelse(grepl(",", author), 
+                          paste(str_split(author, ",", simplify = TRUE)[,2],
+                                str_split(author, ",", simplify = TRUE)[,1],
+                                sep = " "), author),
+         gutenberg_bookshelf = str_split(gutenberg_bookshelf, "/")) |>
+  unnest(gutenberg_bookshelf)
+
 #############
 
 
@@ -19,8 +27,6 @@ bookshelf_genres = data |>
 bookshelf_authors = data |> 
   group_by(gutenberg_bookshelf, gutenberg_author_id, author) |> 
   summarise(total_downloads = sum(downloads_30_days))
-
-
 
 # Genres -------------------------------------------------------------------
 
