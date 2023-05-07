@@ -4,7 +4,9 @@ if(require(pacman)==F) install.packages('pacman')
 pacman::p_load(tidyverse)
 data = subset_classics |> 
   mutate(title = ifelse(nchar(title) > 70, 
-                             paste(substr(title, 0, 70), '...'), title ))
+                             paste(substr(title, 0, 70), '...'), title),
+         genre = ifelse(nchar(title) > 70, 
+                        paste(substr(title, 0, 70), '...'), genre))
 #############
 
 
