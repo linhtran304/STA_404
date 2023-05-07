@@ -20,8 +20,8 @@ library(gutenbergr)
 library(patchwork)
 
 hrbrthemes::import_plex_sans()
-load("~/Desktop/all_data.RData")
-load("~/Desktop/all_data_subjects.RData")
+load(url("https://github.com/linhtran304/STA_404/raw/main/all_data.RData"))
+load(url("https://github.com/linhtran304/STA_404/raw/main/all_data_subjects.RData"))
 
 all_data <- all_data %>%
   mutate(author = sub("(\\w+),\\s(\\w+)","\\2 \\1", all_data$author))
