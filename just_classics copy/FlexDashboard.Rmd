@@ -1,0 +1,292 @@
+---
+title: "Explore Gutenberg: Harvard Classics"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    theme: 
+      version: 5
+      bootswatch: minty
+    source_code: embed 
+---
+
+```{r global, include=FALSE}
+if(require(pacman)==F) install.packages('pacman')
+pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, RColorBrewer)
+theme_set(theme_minimal())
+
+my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
+
+load(url('https://github.com/linhtran304/STA_404/raw/main/just_classics/processed_classics.RData'))
+
+bookshelf_authors <- bookshelf_authors %>%
+  mutate(author = ifelse(grepl(",", author), 
+                         paste(str_split(author, ",", simplify = TRUE)[,2],
+                               str_split(author, ",", simplify = TRUE)[,1],
+                               sep = " "), author))
+
+```
+
+Bookshelf
+===
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+types = c("Genres" = "genre", "Publications" = "title", "Authors" = "author")
+
+selectInput('bookshelf', strong('Select a bookshelf to explore'),
+            choices=unique(na.omit(data$gutenberg_bookshelf)), 
+            selected = unique(data$gutenberg_bookshelf)[1])
+
+radioButtons('type', HTML('<strong><u>For the Popularity Tab:</strong></u><br/>See popularity by:'), choices = types)
+sliderInput('top', 'Number of Genres Displayed:', min=2,max=10,step=1,value=6)
+
+```
+
+Column {.tabset .tabset-fade}
+-------------------------------------
+### Popularity
+
+```{r}
+selected_bookshelf <- reactive({
+  
+  if (input$type == "genre") {
+    bookshelf_genres |> 
+      filter(gutenberg_bookshelf == input$bookshelf) |> 
+      ungroup() |> 
+      slice_max(total_downloads, n=input$top)
+    
+  } else if (input$type == "author") {
+    bookshelf_authors |> 
+      filter(gutenberg_bookshelf == input$bookshelf) |> 
+      ungroup() |> 
+      slice_max(total_downloads, n=input$top)
+
+  }
+  
+  else {
+    data |> 
+      filter(gutenberg_bookshelf == input$bookshelf) |> 
+      rename(total_downloads = downloads_30_days) |> 
+      slice_max(total_downloads, n=input$top)
+  }
+  
+})
+
+renderPlot({
+  
+  bs_plot = ggplot(selected_bookshelf(), aes_string("total_downloads", paste0("reorder(",input$type,",total_downloads)")), color='grey50') + 
+      geom_col(fill='#f3969a') + 
+      theme(axis.title = element_blank()) +
+      scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+      labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
+           subtitle = "Categorized by total number of downloads in the last 30 days") +
+    theme(text = element_text(size=14)) 
+    
+          
+  bs_plot
+
+})
+
+
+```
+
+### Sentiment vs. Popularity
+
+```{r}
+rela_df <- reactive({
+  data |> 
+    filter(gutenberg_bookshelf == input$bookshelf) |>
+    ungroup()
+    
+})
+
+
+renderPlotly({
+    plot_cor = ggplot(rela_df(), 
+                      aes(x=net_bing, 
+                          y=downloads_30_days,
+                          text = paste("Title:", title, 
+                               "\nAuthor:",author,
+                               "\nGenre:", genre,
+                               "\nDownloads:", downloads_30_days, 
+                               "\nSentiment:", net_bing))) +
+      geom_point(alpha=0.7, color="#78c2ad" ) +
+      labs(y = "Number of Downloads in the Last 30 Days",
+           x = "Overall Sentiment",
+           title = str_c("Sentiment vs. Popularity for",
+                         input$bookshelf, sep=" ")) 
+      
+
+    ggplotly(plot_cor, tooltip = "text") %>%
+      layout(title = list(text = paste0(str_c("Sentiment vs. Popularity for",
+                         input$bookshelf, sep=" "),'<br>','<sup>',
+                         'Hover over data points for more information', 
+                         '</sup>')))
+})
+```
+
+
+Author {data-orientation=rows}
+===
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+data <- data %>%
+  mutate(author = ifelse(grepl(",", author), 
+                         paste(str_split(author, ",", simplify = TRUE)[,2],
+                               str_split(author, ",", simplify = TRUE)[,1],
+                               sep = " "), author))
+
+author_summary <- author_summary %>%
+  mutate(author = ifelse(grepl(",", author), 
+                         paste(str_split(author, ",", simplify = TRUE)[,2],
+                               str_split(author, ",", simplify = TRUE)[,1],
+                               sep = " "), author))
+
+author_summary_by_genres <- author_summary_by_genres %>%
+  mutate(author = ifelse(grepl(",", author), 
+                         paste(str_split(author, ",", simplify = TRUE)[,2],
+                               str_split(author, ",", simplify = TRUE)[,1],
+                               sep = " "), author))
+
+selectInput('authorSearch', strong('Search for an author here'), 
+            choices = unique(na.omit(data$author)),
+            selected = unique(data$author)[27])
+
+```
+
+
+Row {data-height=100}
+-----------------------------------------------------------------------
+
+```{r}
+selected_author_summary = reactive({
+  author_summary |> 
+    filter(author == input$authorSearch)
+})
+```
+
+### Genres
+
+```{r}
+renderValueBox({
+  df = selected_author_summary()
+  genres <- df$total_genres
+  valueBox(genres, 
+           icon = "fa-pencil",
+           color = ifelse(genres < 3, "danger", 
+                          ifelse(genres < 6, "warning", "success")))
+})
+```
+
+### Publications 
+
+```{r}
+renderValueBox({
+  df = selected_author_summary()
+  books <- df$total_books
+  valueBox(books, 
+           icon = "ion-ios-book",
+           color = ifelse(books < 5, "danger", 
+                          ifelse(books < 10, "warning", "success")))
+})
+```
+
+### Downloads in the Last 30 Days
+
+```{r}
+renderValueBox({
+  df = selected_author_summary()
+  downloads <- df$total_downloads
+  valueBox(downloads, 
+           icon = "ion-android-download",
+           color = ifelse(downloads < 500, "danger", 
+                          ifelse(downloads < 1500, "warning", "success")))
+})
+```
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Top Genres
+
+```{r}
+selected_author <- reactive({
+  author_summary_by_genres |> 
+    filter(author == input$authorSearch) |> 
+    slice_max(total_pub, n=5)
+})
+
+renderPlot({
+  
+  genres_plot = ggplot(selected_author(), aes(total_pub, genre, text=paste0("Total Publications: ", total_pub, "\nGenre: ",genre)), color='grey50') + 
+      geom_col(fill='#6cc3d5') + 
+      scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
+      labs(x = "\nNumber of Publications", 
+           y = "Genres\n",
+           title = paste0("Top Genres of", input$authorSearch),
+           subtitle = "By Number of Publications") +
+      theme(text = element_text(size=14)) 
+    
+          
+  genres_plot
+    
+})
+
+```
+
+
+### Sentiment
+    
+```{r}
+sentiment <- reactive({
+  data |> 
+    filter(author == input$authorSearch) |> 
+    slice_max(downloads_30_days, n=3) |> 
+    unnest(cols = c(index, bing_positive, bing_negative, bing_overall)) |> 
+    group_by(gutenberg_id)
+})
+
+renderPlotly({
+  sentiment_plot = ggplot(sentiment(), 
+                          aes(index, bing_overall, fill = title, 
+                              text = paste0("Index: ", index, "\nOverall Sentiment: ",bing_overall))) +
+        geom_col(show.legend = FALSE) +
+        facet_wrap(~title, nrow = 1, scales = "free_x",
+                   labeller = labeller(title = label_wrap_gen(width = 45))) +
+        labs(x =  "Progression of the Novel (%)",
+             y = "Sentiment Index") + 
+        scale_fill_manual(values = my_palette) +
+        theme(legend.position = 'none') 
+    
+   
+  plotly::ggplotly(sentiment_plot, tooltip = 'text')
+})
+
+```
+
+
+### Details
+
+```{r}
+detail_table <- reactive({
+  data |> 
+    filter(author == input$authorSearch) |> 
+    mutate(language = str_to_upper(language)) |> 
+    select("Title" = title, "Genre" = genre, 
+           "Downloads in the Last 30 Days" = downloads_30_days,
+           "Language" = language)
+
+})
+
+shiny::renderTable({
+  detail_table()
+}, digits = 0)
+    
+```
+
