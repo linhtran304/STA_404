@@ -42,6 +42,8 @@ selectInput('bookshelf', strong('Select a bookshelf to explore'),
 radioButtons('type', HTML('<strong><u>For the Popularity Tab:</strong></u><br/>See popularity by:'), choices = types)
 sliderInput('top', 'Number of Genres Displayed:', min=2,max=10,step=1,value=6)
 
+HTML('<strong><u>For the Sentiment vs. Popularity Tab:</strong></u>')
+checkboxInput('color', HTML('Color Code By Genre'), value = F)
 ```
 
 Column {.tabset .tabset-fade}
@@ -75,18 +77,19 @@ selected_bookshelf <- reactive({
 })
 
 renderPlot({
-  
-  bs_plot = ggplot(selected_bookshelf(), aes_string("total_downloads", paste0("reorder(",input$type,",total_downloads)")), color='grey50') + 
-      geom_col(fill='#f3969a') + 
-      theme(axis.title = element_blank()) +
-      scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
-      labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
-           subtitle = "Categorized by total number of downloads in the last 30 days") +
-    theme(text = element_text(size=14)) 
+      bs_plot = ggplot(selected_bookshelf(), 
+                       aes_string("total_downloads", 
+                                  paste0("reorder(",input$type,",total_downloads)")), 
+                       color='grey50') + 
+          geom_col(fill='#f3969a') + 
+          scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+          labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
+               y="",
+               x="\nNumber of Downloads in the Last 30 Days") +
+        theme(text = element_text(size=14)) 
     
           
   bs_plot
-
 })
 
 
@@ -104,6 +107,20 @@ rela_df <- reactive({
 
 
 renderPlotly({
+  if (input$color == T) {
+    plot_cor = ggplot(rela_df(), 
+                      aes(x=net_bing, 
+                          y=downloads_30_days,
+                          color=genre,
+                          text = paste("Title:", title, 
+                               "\nAuthor:",author,
+                               "\nGenre:", genre,
+                               "\nDownloads:", downloads_30_days, 
+                               "\nSentiment:", net_bing))) +
+      geom_point(alpha=0.7)
+  }
+  
+  else {
     plot_cor = ggplot(rela_df(), 
                       aes(x=net_bing, 
                           y=downloads_30_days,
@@ -112,14 +129,17 @@ renderPlotly({
                                "\nGenre:", genre,
                                "\nDownloads:", downloads_30_days, 
                                "\nSentiment:", net_bing))) +
-      geom_point(alpha=0.7, color="#78c2ad" ) +
+      geom_point(alpha=0.7, color = '#78c2ad')
+    
+  }
+  plot_cor = plot_cor +
       labs(y = "Number of Downloads in the Last 30 Days",
            x = "Overall Sentiment",
            title = str_c("Sentiment vs. Popularity for",
-                         input$bookshelf, sep=" ")) 
-      
-
-    ggplotly(plot_cor, tooltip = "text") %>%
+                         input$bookshelf, sep=" "))  + 
+      theme(legend.position = "none")
+  
+   ggplotly(plot_cor, tooltip = "text") %>%
       layout(title = list(text = paste0(str_c("Sentiment vs. Popularity for",
                          input$bookshelf, sep=" "),'<br>','<sup>',
                          'Hover over data points for more information', 
@@ -228,9 +248,8 @@ renderPlot({
       geom_col(fill='#6cc3d5') + 
       scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
       labs(x = "\nNumber of Publications", 
-           y = "Genres\n",
-           title = paste0("Top Genres of", input$authorSearch),
-           subtitle = "By Number of Publications") +
+           y = "",
+           title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
       theme(text = element_text(size=14)) 
     
           
