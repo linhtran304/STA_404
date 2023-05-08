@@ -6,8 +6,8 @@ pacman::p_load(tidyverse)
 data = all_data_w_sentiment |> 
   mutate(title = ifelse(nchar(title) > 30, 
                              paste(substr(title, 0, 30), '...'), title),
-         genre = ifelse(nchar(title) > 30, 
-                        paste0(substr(title, 0, 30), '...'), genre),
+         genre = ifelse(nchar(genre) > 30, 
+                        paste0(substr(genre, 0, 30), '...'), genre),
          author = ifelse(grepl(",", author), 
                           str_c(str_split(author, ", ", simplify = TRUE)[,2],
                                 str_split(author, ", ", simplify = TRUE)[,1],
