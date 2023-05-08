@@ -31,7 +31,7 @@ selectInput('bookshelf', strong('Select a bookshelf to explore'),
             choices= sort(unique(na.omit(data$gutenberg_bookshelf))), 
             selected = (data$gutenberg_bookshelf)[23])
 radioButtons('type', HTML('<strong><u>For the Popularity Tab:</strong></u><br/>See popularity by:'), choices = types)
-sliderInput('top', 'Number of Genres Displayed:', min=2,max=10,step=1,value=5)
+sliderInput('top', 'Number of Items Displayed:', min=2,max=10,step=1,value=5)
 HTML('<strong><u>For the Sentiment vs. Popularity Tab:</strong></u>')
 checkboxInput('color', HTML('Color Code By Genre'), value = F)
 ```
@@ -74,12 +74,13 @@ renderPlot({
                        color='grey50') + 
           geom_col(fill='#f3969a') + 
           scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+          scale_x_continuous(breaks = scales::pretty_breaks(n=6)) +
         theme(axis.title.x = element_text(color = "grey50"))+
           scale_x_continuous(labels = scales::comma) +
           labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
-               y="",
                x="\nNumber of Downloads in the Last 30 Days") +
-        theme(text = element_text(size=14)) 
+        theme(text = element_text(size=14),
+              axis.title.y = element_blank()) 
     
       bs_plot
 })
@@ -215,6 +216,7 @@ renderPlot({
   genres_plot = ggplot(selected_author(), aes(total_pub, reorder(genre,total_pub))) + 
       geom_col(fill='#6cc3d5') + 
       scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
+      scale_x_continuous(breaks = scales::pretty_breaks(n=5)) +
       labs(x = "\nNumber of Publications",
            title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
       theme(text = element_text(size=14),
