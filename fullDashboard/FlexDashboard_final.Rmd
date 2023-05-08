@@ -77,7 +77,7 @@ renderPlot({
                                   paste0("reorder(",input$type,",total_downloads)")), 
                        color='grey50') + 
           geom_col(fill='#f3969a') + 
-          scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+          scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
           labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
                y="",
                x="\nNumber of Downloads in the Last 30 Days") +
@@ -224,7 +224,7 @@ renderPlot({
   
   genres_plot = ggplot(selected_author(), aes(total_pub, reorder(genre,total_pub))) + 
       geom_col(fill='#6cc3d5') + 
-      scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
+      scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
       labs(x = "\nNumber of Publications",
            title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
       theme(text = element_text(size=14),
@@ -255,7 +255,7 @@ renderPlotly({
                               text = paste0("Index: ", index, "\nOverall Sentiment: ",bing_overall))) +
         geom_col(show.legend = FALSE) +
         facet_wrap(~title, nrow = 1, scales = "free_x",
-                   labeller = labeller(title = label_wrap_gen(width = 45))) +
+                   labeller = labeller(title = label_wrap_gen(width = 25))) +
         labs(x =  "Progression of the Novel (%)",
              y = "Sentiment Index") + 
         scale_fill_manual(values = my_palette) +
