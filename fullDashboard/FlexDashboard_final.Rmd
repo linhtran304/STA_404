@@ -11,21 +11,19 @@ output:
 ---
 
 ```{r global, include=FALSE}
-library(DT)
-library(lubridate)
 if(require(pacman)==F) install.packages('pacman')
-pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib)
+pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, DT)
 theme_set(theme_minimal())
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
-load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
-#load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData.RData"))
+#load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
+load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData.RData"))
 ```
 
 Bookshelf
 ===
 Inputs {.sidebar}
------------------------------------------------------------------------
+----------------------------------------------------------------------
 
 ```{r}
 types = c("Genres" = "genre", "Publications" = "title", "Authors" = "author")
@@ -260,32 +258,21 @@ renderPlotly({
 
 ```{r overflow: auto}
 detail_table <- reactive({
-<<<<<<< HEAD
-  data |> 
-    filter(author == input$authorSearch) |> 
-    select("Title" = title, "Genre" = genre, 
-           "Downloads in the Last 30 Days" = downloads_30_days,
-           "Language" = language) |> 
-    distinct()
-=======
   out_subject <- data %>%
         filter(author == input$authorSearch) %>%
         mutate(language = str_to_upper(language)) %>%
-        select("Title" = title, "Genre" = genre, 
-               "Publication Date" = toString(date_published),
+        select("Title" = title, 
+               "Genre" = genre, 
+               "Publication Date" = date_published,
                "Downloads in the Last 30 Days" = downloads_30_days,
                "Language" = language) %>%
-    sort(title, decreasing = TRUE) %>%
     unique()
-  
->>>>>>> 8715ce6e68f817f393bb277b5d856e434b6b8d2c
-
 })
 
 
 DT::renderDataTable({
   datatable(detail_table(),
-            fillContainer = TRUE, 
+            fillContainer = TRUE
   )
 })
     
