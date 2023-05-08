@@ -17,7 +17,7 @@ theme_set(theme_minimal())
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
 #load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
-load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData.RData"))
+load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData_final.RData"))
 ```
 
 Bookshelf
@@ -232,7 +232,10 @@ renderPlot({
 sentiment <- reactive({
   data |> 
     filter(author == input$authorSearch) |> 
-    slice_max(downloads_30_days, n=3) |> 
+    select(gutenberg_id, title, author, index,bing_positive, bing_negative, bing_overall, downloads_30_days ) |> 
+    distinct() |> 
+    arrange(desc(downloads_30_days)) |> 
+    head(3) |>
     unnest(cols = c(index, bing_positive, bing_negative, bing_overall)) |> 
     group_by(gutenberg_id)
 })
