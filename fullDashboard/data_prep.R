@@ -27,9 +27,9 @@ sub6 = meta_data$gutenberg_id[50001:60000]
 sub7 = meta_data$gutenberg_id[60001:length(meta_data$gutenberg_id)]
 
 ### Batch 1 -----------------------------------------------------------------
-batch1_mini = tibble()
+batch1 = tibble()
 
-for (i in sub1[2612:2655]) {
+for (i in sub1) {
   book = paste0("https://gutenberg.org/ebooks/", i) |> 
     read_html() |> 
     html_elements("table") |> 
@@ -42,24 +42,11 @@ for (i in sub1[2612:2655]) {
   downloads = book[[2]][["X2"]][which(str_detect(book[[2]][["X2"]], pattern = "[0-9]+? downloads"))]
   
   temp = tibble(gutenberg_id = i, date_published = date, downloads = downloads)
-  batch1_mini = rbind(batch1_mini, temp)
+  batch1 = rbind(batch1, temp)
 }
 
-save(batch1_mini, file='group_data/batch1_mini.RData')
+save(batch1, file='group_data/batch1.RData')
 
-
-
-test = batch1_2 |> 
-  count(gutenberg_id) |> 
-  filter(n > 1)
-
-batch_fix = batch1_2 |> 
-  filter(str_detect(date_published, pattern = "(?<!.)([A-Z][a-z]{2} [0-9]{1,2}, [0-9]{4})(?!.)"),
-         gutenberg_id != 2698)
-
-batch1_all = bind_rows(batch1, batch1_mini, batch_fix)
-
-save(batch1_all, file='group_data/batch1_all.RData')
 
 ### Batch 2 -----------------------------------------------------------------
 batch2 = tibble()
@@ -125,9 +112,9 @@ for (i in sub4) {
 save(batch4, file='group_data/batch4.RData')
 
 ### Batch 5 -----------------------------------------------------------------
-batch5_1 = tibble()
+batch5 = tibble()
 
-for (i in sub5[3211:10000]) {
+for (i in sub5) {
   book = paste0("https://gutenberg.org/ebooks/", i) |> 
     read_html() |> 
     html_elements("table") |> 
@@ -140,17 +127,13 @@ for (i in sub5[3211:10000]) {
   downloads = book[[2]][["X2"]][which(str_detect(book[[2]][["X2"]], pattern = "[0-9]+? downloads"))]
   
   temp = tibble(gutenberg_id = i, date_published = date, downloads = downloads)
-  batch5_1 = rbind(batch5_1, temp)
+  batch5 = rbind(batch5, temp)
 }
 
-save(batch5_1, file='group_data/batch5_1.RData')
-
-batch5_all = bind_rows(batch5, batch5_1)
-
-save(batch5_all, file='group_data/batch5_all.RData')
+save(batch5, file='group_data/batch5.RData')
 
 ### Batch 6 -----------------------------------------------------------------
-batch6_1 = tibble()
+batch6 = tibble()
 
 for (i in sub6[6979:10000]) {
   book = paste0("https://gutenberg.org/ebooks/", i) |> 
@@ -165,19 +148,16 @@ for (i in sub6[6979:10000]) {
   downloads = book[[2]][["X2"]][which(str_detect(book[[2]][["X2"]], pattern = "[0-9]+? downloads"))]
   
   temp = tibble(gutenberg_id = i, date_published = date, downloads = downloads)
-  batch6_1 = rbind(batch6_1, temp)
+  batch6= rbind(batch6, temp)
 }
 
-save(batch6_1, file='group_data/batch6_1.RData')
-load('group_data/batch6.RData')
+save(batch6, file='group_data/batch6.RData')
 
-batch6_all = bind_rows(batch6, batch6_1)
-save(batch6_all, file='group_data/batch6_all.RData')
 
 ### Batch 7 -----------------------------------------------------------------
-batch7_1 = tibble()
+batch7 = tibble()
 
-for (i in sub7[2336:length(meta_data$gutenberg_id)]) {
+for (i in sub7) {
   book = paste0("https://gutenberg.org/ebooks/", i) |> 
     read_html() |> 
     html_elements("table") |> 
@@ -190,34 +170,29 @@ for (i in sub7[2336:length(meta_data$gutenberg_id)]) {
   downloads = book[[2]][["X2"]][which(str_detect(book[[2]][["X2"]], pattern = "[0-9]+? downloads"))]
   
   temp = tibble(gutenberg_id = i, date_published = date, downloads = downloads)
-  batch7_1 = rbind(batch7_1, temp)
+  batch7 = rbind(batch7, temp)
 }
 
-save(batch7_1, file='group_data/batch7_1.RData')
+save(batch7, file='group_data/batch7.RData')
 
-load('group_data/batch7.RData')
-
-batch7_all = bind_rows(batch7, batch7_1)
-
-save(batch7_all, file='group_data/batch7_all.RData')
 
 
 ## Merging all data --------------------------------------------------------
 
-load('group_data/batch1_all.RData')
+load('group_data/batch1.RData')
 load('group_data/batch2.RData')
 load('group_data/batch3.RData')
 load('group_data/batch4.RData')
-load('group_data/batch5_all.RData')
-load('group_data/batch6_all.RData')
+load('group_data/batch5.RData')
+load('group_data/batch6.RData')
 
-all_scrapped = bind_rows(batch1_all, 
+all_scrapped = bind_rows(batch1, 
                          batch2,
                          batch3,
                          batch4,
-                         batch5_all,
-                         batch6_all,
-                         batch7_all)
+                         batch5,
+                         batch6,
+                         batch7)
 
 all_scrapped = all_scrapped |> 
   mutate(downloads_30_days = str_sub(downloads, end=-31) |> as.numeric(),
@@ -228,7 +203,7 @@ save(all_scrapped, file='group_data/all_scrapped.RData')
 
 ## Getting the first 30k books to use first --------------------------------
 
-load('group_data/batch1_all.RData')
+load('group_data/batch1.RData')
 load('group_data/batch2.RData')
 load('group_data/batch3.RData')
 
@@ -294,7 +269,7 @@ save(allie_batch, file="allie_batch.RData")
 
 ## Text Mining ---------------------------------------------------------------
 ## this is to show you the general code
-## in actuality, we run this code on our downloaded batches 
+## in actuality, we run this code on our assigned downloaded batches 
 ## (the variable names here are only representative for what we did)
  
 load('text.RData') ## say we load the downloaded text
@@ -331,9 +306,23 @@ bing = text |>
 save(bing, file='bing.RData')
 
 ## We then append all the sentiment output together
+load(url("https://github.com/linhtran304/STA_404/raw/main/sentiment_data/allie_data_final.RData"))
+load(url("https://github.com/linhtran304/STA_404/raw/main/sentiment_data/jenn_all_sentiment.RData"))
+load(url("https://github.com/linhtran304/STA_404/raw/main/sentiment_data/linh_bing_all.RData"))
+load(url("https://github.com/linhtran304/STA_404/raw/main/sentiment_data/merged_anh.RData"))
+
+sentiment_data = bind_rows(allie_data,
+                           bing_all,
+                           jenn_all_sentiment,
+                           merged_anh)
+
+## the result can be downloaded from here
 load(url("https://github.com/linhtran304/STA_404/raw/main/sentiment_data.RData"))
 
 ## and then merge the sentiment with the rest of the data
+
+all_data_w_sentiment = left_join(all_data, sentiment_data, by="gutenberg_id")
+
 ## this is our final dataset to use for the dashboard
 load(url("https://github.com/linhtran304/STA_404/raw/main/all_data_w_sentiment.RData"))
 
