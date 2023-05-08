@@ -31,7 +31,7 @@ bookshelf_authors = data |>
 # Genres -------------------------------------------------------------------
 
 genres_authors = data |> 
-  select(genre, gutenberg_author_id, author, downloads_30_days) |> 
+  select(genre, gutenberg_author_id, author, gutenberg_id, downloads_30_days) |> 
   distinct() |> 
   group_by(genre, gutenberg_author_id, author) |> 
   summarise(total_downloads = sum(downloads_30_days))
@@ -50,7 +50,7 @@ author_summary = data |>
 author_summary_by_genres = data |> 
   select(gutenberg_id, gutenberg_author_id, author, genre) |> 
   distinct() |> 
-  group_by(gutenberg_id, gutenberg_author_id, author, genre) |> 
+  group_by(gutenberg_author_id, author, genre) |> 
   summarize(total_pub = n())
 
 ###################################

@@ -1,5 +1,5 @@
 ---
-title: "Explore Gutenberg: Harvard Classics"
+title: "Explore Gutenberg"
 runtime: shiny
 output: 
   flexdashboard::flex_dashboard:
@@ -280,7 +280,8 @@ detail_table <- reactive({
     mutate(language = str_to_upper(language)) |> 
     select("Title" = title, "Genre" = genre, 
            "Downloads in the Last 30 Days" = downloads_30_days,
-           "Language" = language)
+           "Language" = language) |> 
+    distinct()
 
 })
 
