@@ -48,9 +48,9 @@ author_summary = data |>
             total_downloads = sum(downloads_30_days))
 
 author_summary_by_genres = data |> 
-  select(gutenberg_author_id, author, genre) |> 
+  select(gutenberg_id, gutenberg_author_id, author, genre) |> 
   distinct() |> 
-  group_by(gutenberg_author_id, author, genre) |> 
+  group_by(gutenberg_id, gutenberg_author_id, author, genre) |> 
   summarize(total_pub = n())
 
 ###################################
