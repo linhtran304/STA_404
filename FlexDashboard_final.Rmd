@@ -1,5 +1,5 @@
 ---
-title: "Explore Gutenberg: Harvard Classics"
+title: "Explore Project Gutenberg:"
 runtime: shiny
 output: 
   flexdashboard::flex_dashboard:
@@ -12,30 +12,26 @@ output:
 
 ```{r global, include=FALSE}
 if(require(pacman)==F) install.packages('pacman')
-pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, RColorBrewer)
+pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, DT)
 theme_set(theme_minimal())
-
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
-load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
-
+#load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
+load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData_final.RData"))
 ```
 
 Bookshelf
 ===
 Inputs {.sidebar}
------------------------------------------------------------------------
+----------------------------------------------------------------------
 
 ```{r}
 types = c("Genres" = "genre", "Publications" = "title", "Authors" = "author")
-
 selectInput('bookshelf', strong('Select a bookshelf to explore'),
-            choices=unique(na.omit(data$gutenberg_bookshelf)), 
-            selected = unique(data$gutenberg_bookshelf)[1])
-
+            choices= sort(unique(na.omit(data$gutenberg_bookshelf))), 
+            selected = (data$gutenberg_bookshelf)[23])
 radioButtons('type', HTML('<strong><u>For the Popularity Tab:</strong></u><br/>See popularity by:'), choices = types)
-sliderInput('top', 'Number of Genres Displayed:', min=2,max=10,step=1,value=6)
-
+sliderInput('top', 'Number of Genres Displayed:', min=2,max=10,step=1,value=5)
 HTML('<strong><u>For the Sentiment vs. Popularity Tab:</strong></u>')
 checkboxInput('color', HTML('Color Code By Genre'), value = F)
 ```
@@ -52,6 +48,7 @@ selected_bookshelf <- reactive({
       filter(gutenberg_bookshelf == input$bookshelf) |> 
       ungroup() |> 
       slice_max(total_downloads, n=input$top)
+
     
   } else if (input$type == "author") {
     bookshelf_authors |> 
@@ -66,10 +63,10 @@ selected_bookshelf <- reactive({
       filter(gutenberg_bookshelf == input$bookshelf) |> 
       rename(total_downloads = downloads_30_days) |> 
       slice_max(total_downloads, n=input$top)
+    
   }
   
 })
-
 renderPlot({
       bs_plot = ggplot(selected_bookshelf(), 
                        aes_string("total_downloads", 
@@ -77,16 +74,15 @@ renderPlot({
                        color='grey50') + 
           geom_col(fill='#f3969a') + 
           scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+        theme(axis.title.x = element_text(color = "grey50"))+
+          scale_x_continuous(labels = scales::comma) +
           labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
                y="",
                x="\nNumber of Downloads in the Last 30 Days") +
         theme(text = element_text(size=14)) 
     
-          
-  bs_plot
+      bs_plot
 })
-
-
 ```
 
 ### Sentiment vs. Popularity
@@ -98,8 +94,6 @@ rela_df <- reactive({
     ungroup()
     
 })
-
-
 renderPlotly({
   if (input$color == T) {
     plot_cor = ggplot(rela_df(), 
@@ -131,7 +125,7 @@ renderPlotly({
            x = "Overall Sentiment",
            title = str_c("Sentiment vs. Popularity for",
                          input$bookshelf, sep=" "))  + 
-      theme(legend.position = "none")
+      theme(legend.position = "none", axis.title.y = element_text(color = "grey50"),axis.title.x = element_text(color = "grey50"),plot.subtitle = element_text(color = "grey50"))
   
    ggplotly(plot_cor, tooltip = "text") %>%
       layout(title = list(text = paste0(str_c("Sentiment vs. Popularity for",
@@ -145,19 +139,17 @@ renderPlotly({
 Author {data-orientation=rows}
 ===
 
-Inputs {.sidebar}
+Inputs {.sidebar }
 -----------------------------------------------------------------------
 
 ```{r}
-
 selectInput('authorSearch', strong('Search for an author here'), 
-            choices = unique(na.omit(data$author)),
-            selected = unique(data$author)[27])
-
+            choices = sort(unique(na.omit(data$author))),
+            selected = data$author[391])
 ```
 
 
-Row {data-height=100}
+Row {overflow: auto}
 -----------------------------------------------------------------------
 
 ```{r}
@@ -206,7 +198,7 @@ renderValueBox({
 })
 ```
 
-Row {.tabset .tabset-fade}
+Row {.tabset .tabset-fade }
 -------------------------------------
 
 ### Top Genres
@@ -215,24 +207,24 @@ Row {.tabset .tabset-fade}
 selected_author <- reactive({
   author_summary_by_genres |> 
     filter(author == input$authorSearch) |> 
-    slice_max(total_pub, n=5)
+    arrange(desc(total_pub)) |> 
+    head(5)
 })
-
 renderPlot({
   
-  genres_plot = ggplot(selected_author(), aes(total_pub, genre, text=paste0("Total Publications: ", total_pub, "\nGenre: ",genre)), color='grey50') + 
+  genres_plot = ggplot(selected_author(), aes(total_pub, reorder(genre,total_pub))) + 
       geom_col(fill='#6cc3d5') + 
       scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
-      labs(x = "\nNumber of Publications", 
-           y = "",
+      labs(x = "\nNumber of Publications",
            title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
-      theme(text = element_text(size=14)) 
+      theme(text = element_text(size=14),
+            axis.title.y = element_blank(),
+            axis.title.x = element_text(color = "grey50")) 
     
           
   genres_plot
     
 })
-
 ```
 
 
@@ -257,31 +249,42 @@ renderPlotly({
         labs(x =  "Progression of the Novel (%)",
              y = "Sentiment Index") + 
         scale_fill_manual(values = my_palette) +
-        theme(legend.position = 'none') 
+        theme(legend.position = 'none', 
+              axis.title.y = element_text(color = "grey50"),axis.title.x = element_text(color = "grey50")) 
     
    
   plotly::ggplotly(sentiment_plot, tooltip = 'text')
 })
-
 ```
 
+### Details 
 
-### Details
-
-```{r}
+```{r overflow: auto}
 detail_table <- reactive({
-  data |> 
-    filter(author == input$authorSearch) |> 
-    mutate(language = str_to_upper(language)) |> 
-    select("Title" = title, "Genre" = genre, 
-           "Downloads in the Last 30 Days" = downloads_30_days,
-           "Language" = language)
-
+  out_subject <- data %>%
+        filter(author == input$authorSearch) %>%
+        mutate(language = str_to_upper(language)) %>%
+        select("Title" = title, 
+               "Genre" = genre, 
+               "Publication Date" = date_published,
+               "Downloads in the Last 30 Days" = downloads_30_days,
+               "Language" = language) %>%
+    unique()
 })
 
-shiny::renderTable({
-  detail_table()
-}, digits = 0)
+
+DT::renderDataTable({
+  datatable(detail_table(),
+            fillContainer = TRUE
+  )
+})
     
+```
+
+```{css my-style, echo = FALSE}
+
+.chart-wrapper .chart-stage {
+    overflow: auto;
+}
 ```
 
