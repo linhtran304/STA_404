@@ -277,7 +277,6 @@ renderPlotly({
 detail_table <- reactive({
   data |> 
     filter(author == input$authorSearch) |> 
-    mutate(language = str_to_upper(language)) |> 
     select("Title" = title, "Genre" = genre, 
            "Downloads in the Last 30 Days" = downloads_30_days,
            "Language" = language) |> 

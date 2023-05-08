@@ -7,12 +7,13 @@ data = all_data_w_sentiment |>
   mutate(title = ifelse(nchar(title) > 30, 
                              paste(substr(title, 0, 30), '...'), title),
          genre = ifelse(nchar(title) > 30, 
-                        paste(substr(title, 0, 30), '...'), genre),
+                        paste0(substr(title, 0, 30), '...'), genre),
          author = ifelse(grepl(",", author), 
-                          paste(str_split(author, ",", simplify = TRUE)[,2],
-                                str_split(author, ",", simplify = TRUE)[,1],
+                          str_c(str_split(author, ", ", simplify = TRUE)[,2],
+                                str_split(author, ", ", simplify = TRUE)[,1],
                                 sep = " "), author),
-         gutenberg_bookshelf = str_split(gutenberg_bookshelf, "/")) |>
+         gutenberg_bookshelf = str_split(gutenberg_bookshelf, "/"),
+         language = str_to_upper(language)) |>
   unnest(gutenberg_bookshelf)
 
 #############
@@ -26,14 +27,6 @@ bookshelf_genres = data |>
 
 bookshelf_authors = data |> 
   group_by(gutenberg_bookshelf, gutenberg_author_id, author) |> 
-  summarise(total_downloads = sum(downloads_30_days))
-
-# Genres -------------------------------------------------------------------
-
-genres_authors = data |> 
-  select(genre, gutenberg_author_id, author, gutenberg_id, downloads_30_days) |> 
-  distinct() |> 
-  group_by(genre, gutenberg_author_id, author) |> 
   summarise(total_downloads = sum(downloads_30_days))
 
 
@@ -56,5 +49,4 @@ author_summary_by_genres = data |>
 ###################################
 save(data, author_summary, author_summary_by_genres, 
      bookshelf_genres, bookshelf_authors,
-     genres_authors,
      file = 'processed_allData.RData')
