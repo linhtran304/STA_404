@@ -4,10 +4,10 @@ load(url('https://github.com/linhtran304/STA_404/raw/main/fullDashboard/all_data
 if(require(pacman)==F) install.packages('pacman')
 pacman::p_load(tidyverse)
 data = all_data_w_sentiment |> 
-  mutate(title = ifelse(nchar(title) > 70, 
-                             paste(substr(title, 0, 70), '...'), title),
-         genre = ifelse(nchar(title) > 70, 
-                        paste(substr(title, 0, 70), '...'), genre),
+  mutate(title = ifelse(nchar(title) > 30, 
+                             paste(substr(title, 0, 30), '...'), title),
+         genre = ifelse(nchar(title) > 30, 
+                        paste(substr(title, 0, 30), '...'), genre),
          author = ifelse(grepl(",", author), 
                           paste(str_split(author, ",", simplify = TRUE)[,2],
                                 str_split(author, ",", simplify = TRUE)[,1],
