@@ -74,6 +74,7 @@ renderPlot({
                        color='grey50') + 
           geom_col(fill='#f3969a') + 
           scale_y_discrete(labels = function(x) str_wrap(x, width = 40)) +
+        theme(axis.title.x = element_text(color = "grey50"))+
           scale_x_continuous(labels = scales::comma) +
           labs(title = str_c("Trending: Top", input$top, names(types[which(types ==input$type)]), "in", input$bookshelf, sep=" "),
                y="",
@@ -124,7 +125,7 @@ renderPlotly({
            x = "Overall Sentiment",
            title = str_c("Sentiment vs. Popularity for",
                          input$bookshelf, sep=" "))  + 
-      theme(legend.position = "none")
+      theme(legend.position = "none", axis.title.y = element_text(color = "grey50"),axis.title.x = element_text(color = "grey50"),plot.subtitle = element_text(color = "grey50"))
   
    ggplotly(plot_cor, tooltip = "text") %>%
       layout(title = list(text = paste0(str_c("Sentiment vs. Popularity for",
@@ -217,7 +218,8 @@ renderPlot({
       labs(x = "\nNumber of Publications",
            title = paste0(input$authorSearch, "'s Top Genres", sep="")) +
       theme(text = element_text(size=14),
-            axis.title.y = element_blank()) 
+            axis.title.y = element_blank(),
+            axis.title.x = element_text(color = "grey50")) 
     
           
   genres_plot
@@ -232,10 +234,7 @@ renderPlot({
 sentiment <- reactive({
   data |> 
     filter(author == input$authorSearch) |> 
-    select(gutenberg_id, title, author, index,bing_positive, bing_negative, bing_overall, downloads_30_days ) |> 
-    distinct() |> 
-    arrange(desc(downloads_30_days)) |> 
-    head(3) |>
+    slice_max(downloads_30_days, n=3) |> 
     unnest(cols = c(index, bing_positive, bing_negative, bing_overall)) |> 
     group_by(gutenberg_id)
 })
@@ -250,7 +249,8 @@ renderPlotly({
         labs(x =  "Progression of the Novel (%)",
              y = "Sentiment Index") + 
         scale_fill_manual(values = my_palette) +
-        theme(legend.position = 'none') 
+        theme(legend.position = 'none', 
+              axis.title.y = element_text(color = "grey50"),axis.title.x = element_text(color = "grey50")) 
     
    
   plotly::ggplotly(sentiment_plot, tooltip = 'text')
