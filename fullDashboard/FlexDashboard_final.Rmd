@@ -16,7 +16,6 @@ pacman::p_load(flexdashboard, tidyverse, plotly, magrittr, shiny, bslib, DT)
 theme_set(theme_minimal())
 my_palette = c("#B3CDE3", "#FBB4AE", "#CCEBC5")
 
-#load('/Users/alliefiliatraut/Documents/GitHub/STA_404/fullDashboard/processed_allData.RData')
 load(url("https://github.com/linhtran304/STA_404/raw/main/fullDashboard/processed_allData_final.RData"))
 ```
 
